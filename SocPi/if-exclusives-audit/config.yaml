@@ -1,0 +1,57 @@
+# IF & Exclusives audit — runtime config.
+# Populated lazily on first run (Step 3 of SKILL.md).
+
+spreadsheet:
+  file_id: "1DsjxLnlZDZmZMPuvVJaKLZ_rWgZML-AxuQ6zRSS1TXk"
+  tab: "IF & Exclusives"
+
+# SocialPilot platform IDs. Verify on first run by inspecting AccountList payloads.
+platforms:
+  facebook: 1
+  twitter: 2     # X
+  linkedin: 3
+  instagram: 9
+
+# Matching thresholds.
+thresholds:
+  fuzzy_token_set_ratio: 85   # below this, no fuzzy match
+  caption_mismatch_ratio: 50  # below this, flag caption-mismatch
+  delay_hours_warn: 48        # post.publishedAt - article.publishDate > this → flag delay>48h
+
+# Publication → SocialPilot group + per-platform loginId.
+# Populated by the orchestrator on first run.
+# Schema: groups: { <publication_host>: { groupId: <int>, accounts: { facebook: <loginId>, instagram: <loginId>, linkedin: <loginId>, twitter: <loginId> } } }
+groups: {}
+
+# 20 publications expected (from the IF & Exclusives XML tab):
+expected_publications:
+  - sbr.com.sg
+  - asianbankingandfinance.net
+  - healthcareasiamagazine.com
+  - hongkongbusiness.hk
+  - retailasia.com
+  - realestateasia.com
+  - asianbusinessreview.com
+  - insuranceasia.com
+  - asian-power.com
+  - qsrmedia.asia
+  - qsrmedia.com.au
+  - qsrmedia.co.uk
+  - manufacturing.asia
+  - asiantelecom.com
+  - govmedia.com
+  - esgbusiness.com
+  - marinereport.com
+  - drinksasia.com
+  - foodasia.media
+  # 19 listed in the XML tab; the 20th is implicit (likely sbr.com.sg sister site or to be added).
+
+# Short-link domains to resolve via HEAD redirect.
+shortlink_domains:
+  - bit.ly
+  - t.co
+  - lnkd.in
+  - ow.ly
+  - buff.ly
+  - tinyurl.com
+  - socialpilot.co

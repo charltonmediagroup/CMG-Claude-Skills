@@ -1,0 +1,68 @@
+# =============================================================================
+# Credentials — never commit
+# =============================================================================
+# Real Google service-account keys live under */secrets/ on each contributor's
+# disk. The .example skeletons are committed so cloners know what file to drop in.
+**/secrets/*.json
+!**/secrets/*.example
+!**/secrets/.gitkeep
+
+# =============================================================================
+# Reference PDFs that are too large or licensed (kept locally, never pushed)
+# =============================================================================
+# The five Charlton B2B Media Kits and the TDM Media Kit are flagged "reference
+# only" by the runtime — kept on disk for the team but not part of the repo.
+EMR/*Media Kit.pdf
+TDM-EMR/Media Kit.pdf
+
+# =============================================================================
+# EMR — run outputs and per-brand caches
+# =============================================================================
+EMR/output/*/
+!EMR/output/.gitkeep
+
+# =============================================================================
+# TDM-EMR — Travel Daily Media run outputs
+# =============================================================================
+TDM-EMR/output/earned-media/.cache/
+!TDM-EMR/output/earned-media/.cache/.gitkeep
+TDM-EMR/output/earned-media/*.docx
+TDM-EMR/output/earned-media/*.html
+
+# =============================================================================
+# Editorial — XML feed dumps and skill-internal cache regenerated each run
+# =============================================================================
+Editorial/xml_feeds/*.xml
+!Editorial/xml_feeds/.gitkeep
+Editorial/*.xml
+Editorial/.claude/skills/editorial-video-researcher/cache/articles/
+Editorial/.claude/skills/editorial-video-researcher/cache/feeds/
+Editorial/.claude/skills/editorial-video-researcher/cache/*.json
+!Editorial/.claude/skills/editorial-video-researcher/cache/.gitkeep
+
+# =============================================================================
+# SocPi — IF & Exclusives audit caches and per-run reports
+# =============================================================================
+SocPi/if-exclusives-audit/cache/sheet.csv
+SocPi/if-exclusives-audit/cache/articles.json
+SocPi/if-exclusives-audit/cache/posts.json
+SocPi/if-exclusives-audit/cache/matches.json
+SocPi/if-exclusives-audit/cache/manual_overrides.json
+SocPi/if-exclusives-audit/cache/shortlinks.json
+SocPi/if-exclusives-audit/cache/account_map.json
+SocPi/if-exclusives-audit/cache/responses/*/
+!SocPi/if-exclusives-audit/cache/responses/.gitkeep
+SocPi/if-exclusives-audit/runs/*.md
+SocPi/if-exclusives-audit/runs/*.csv
+!SocPi/if-exclusives-audit/runs/.gitkeep
+
+# =============================================================================
+# Python / Node / OS junk
+# =============================================================================
+__pycache__/
+*.py[co]
+.venv/
+venv/
+node_modules/
+.DS_Store
+Thumbs.db

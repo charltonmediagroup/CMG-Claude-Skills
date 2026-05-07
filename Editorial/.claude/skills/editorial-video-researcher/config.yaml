@@ -1,0 +1,55 @@
+spreadsheet:
+  file_id: "1QD8X7lphuy0ryxqhHKMxYYVARm2IB9IlRheBlt21xdU"
+  tab: "[2026] Discussion Topic"
+
+defaults:
+  articles_per_pub: 3
+
+publications:
+  SBR:
+    name: "Singapore Business Review"
+    feed: "http://sbr.com.sg/top-read-feed.xml"
+  HKB:
+    name: "Hong Kong Business"
+    feed: "http://hongkongbusiness.hk/top-read-feed.xml"
+  ABF:
+    name: "Asian Banking & Finance"
+    feed: "https://asianbankingandfinance.net/top-read-feed.xml"
+  IA:
+    name: "Insurance Asia"
+    feed: "http://insuranceasia.com/top-read-feed.xml"
+  RA:
+    name: "Retail Asia"
+    feed: "http://retailasia.com/top-read-feed.xml"
+  HCA:
+    name: "Healthcare Asia"
+    feed: "http://healthcareasiamagazine.com/top-read-feed.xml"
+  AP:
+    name: "Asian Power"
+    feed: "http://asian-power.com/top-read-feed.xml"
+  GovMedia:
+    name: "GovMedia"
+    feed: "https://govmedia.com/top-read-feed.xml"
+  MA:
+    name: "Manufacturing Asia"
+    feed: "https://manufacturing.asia/top-read-feed.xml"
+  AT:
+    name: "Asian Telecom"
+    feed: "https://asiantelecom.com/top-read-feed.xml"
+  REA:
+    name: "Real Estate Asia"
+    feed: "https://realestateasia.com/top-read-feed.xml"
+
+# URLs whose path contains ANY of these segments are dropped from feed parsing.
+# Used to skip event recaps, opinion/commentary, sponsored content, and video posts —
+# none of which fit the C-suite discussion-topic pipeline.
+excluded_path_segments:
+  - /event-news/
+  - /commentary/
+  - /co-written-partner/
+  - /videos/
+
+http_headers:
+  User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+  Accept-Language: "en-US,en;q=0.9"

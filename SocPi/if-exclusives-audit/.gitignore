@@ -1,0 +1,24 @@
+# Secrets — never commit
+secrets/*.json
+!secrets/.gitkeep
+
+# Per-run scratch
+cache/sheet.csv
+cache/articles.json
+cache/posts.json
+cache/matches.json
+cache/manual_overrides.json
+cache/responses/*/
+!cache/responses/.gitkeep
+
+# Generated reports
+runs/*.md
+runs/*.csv
+!runs/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
