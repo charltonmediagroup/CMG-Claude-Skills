@@ -52,8 +52,11 @@ Install **both**: the quick variant calls into the main skill's `scripts/` and `
 4. Create your SA key (see top-level README) and share the *Commercial SocPi - Links* sheet with the SA email as **Editor**. Drop the JSON at `~/.claude/skills/if-exclusives-audit/secrets/gsheets-sa.json`. Use `gsheets-sa.json.example` as a template.
 5. From any folder, in Claude Code:
    ```
-   /if-exclusives-audit
+   /if-exclusives-audit                 # all 19 publications
+   /if-exclusives-audit SBR HKB         # narrow to specific pubs (case-insensitive)
+   /if-exclusives-audit QSR             # alias → all three QSR Media variants
    ```
+   Acronyms are listed in [`if-exclusives-audit/README.md`](if-exclusives-audit/README.md#running) and `if-exclusives-audit/config.yaml`. Run `python ~/.claude/skills/if-exclusives-audit/scripts/collect_urls.py --list-pubs` to print them.
 
 ## Source of truth (strict)
 

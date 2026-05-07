@@ -23,28 +23,41 @@ thresholds:
 # Schema: groups: { <publication_host>: { groupId: <int>, accounts: { facebook: <loginId>, instagram: <loginId>, linkedin: <loginId>, twitter: <loginId> } } }
 groups: {}
 
-# 20 publications expected (from the IF & Exclusives XML tab):
-expected_publications:
-  - sbr.com.sg
-  - asianbankingandfinance.net
-  - healthcareasiamagazine.com
-  - hongkongbusiness.hk
-  - retailasia.com
-  - realestateasia.com
-  - asianbusinessreview.com
-  - insuranceasia.com
-  - asian-power.com
-  - qsrmedia.asia
-  - qsrmedia.com.au
-  - qsrmedia.co.uk
-  - manufacturing.asia
-  - asiantelecom.com
-  - govmedia.com
-  - esgbusiness.com
-  - marinereport.com
-  - drinksasia.com
-  - foodasia.media
-  # 19 listed in the XML tab; the 20th is implicit (likely sbr.com.sg sister site or to be added).
+# Publications — acronym → host map.
+# The acronym is what the user types in `/if-exclusives-audit <ACR1> <ACR2> ...`
+# to filter the run to specific pubs. Acronyms are case-insensitive.
+# The host must match the URL hostname found in the "IF & Exclusives XML" tab,
+# normalized (lowercased, leading "www." stripped). Adding a new pub here +
+# putting its feed URLs in the XML tab is enough to make `/if-exclusives-audit
+# <NEW>` work.
+publications:
+  SBR:      { host: sbr.com.sg,                  name: "Singapore Business Review" }
+  ABF:      { host: asianbankingandfinance.net,  name: "Asian Banking & Finance" }
+  HCA:      { host: healthcareasiamagazine.com,  name: "Healthcare Asia" }
+  HKB:      { host: hongkongbusiness.hk,         name: "Hong Kong Business" }
+  RA:       { host: retailasia.com,              name: "Retail Asia" }
+  REA:      { host: realestateasia.com,          name: "Real Estate Asia" }
+  ABR:      { host: asianbusinessreview.com,     name: "Asian Business Review" }
+  IA:       { host: insuranceasia.com,           name: "Insurance Asia" }
+  AP:       { host: asian-power.com,             name: "Asian Power" }
+  QSR-A:    { host: qsrmedia.asia,               name: "QSR Media Asia" }
+  QSR-AU:   { host: qsrmedia.com.au,             name: "QSR Media Australia" }
+  QSR-UK:   { host: qsrmedia.co.uk,              name: "QSR Media UK" }
+  MA:       { host: manufacturing.asia,          name: "Manufacturing Asia" }
+  AT:       { host: asiantelecom.com,            name: "Asian Telecom" }
+  GovMedia: { host: govmedia.com,                name: "GovMedia" }
+  ESG:      { host: esgbusiness.com,             name: "ESG Business" }
+  MR:       { host: marinereport.com,            name: "Marine Report" }
+  DA:       { host: drinksasia.com,              name: "Drinks Asia" }
+  FA:       { host: foodasia.media,              name: "Food Asia" }
+
+# Group aliases — convenience names that expand to multiple acronyms.
+# Aliases are also case-insensitive and can be mixed with bare acronyms in
+# the selector list (e.g. `/if-exclusives-audit QSR HKB`).
+publication_aliases:
+  all: [SBR, ABF, HCA, HKB, RA, REA, ABR, IA, AP,
+        QSR-A, QSR-AU, QSR-UK, MA, AT, GovMedia, ESG, MR, DA, FA]
+  QSR: [QSR-A, QSR-AU, QSR-UK]
 
 # Short-link domains to resolve via HEAD redirect.
 shortlink_domains:

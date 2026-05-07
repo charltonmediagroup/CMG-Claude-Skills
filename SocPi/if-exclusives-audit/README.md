@@ -65,22 +65,37 @@ If it prints `Articles in sheet: 21 ... Mode: DRY-RUN (no writes)` you're set.
 
 ## Running
 
-Inside Claude Code, type:
+Inside Claude Code:
 
 ```
+# All 19 publications:
 /if-exclusives-audit
+
+# Specific pubs (acronyms are case-insensitive):
+/if-exclusives-audit SBR HKB
+/if-exclusives-audit sbr,hkb,abf
+/if-exclusives-audit QSR             # alias → all three QSR Media variants
+/if-exclusives-audit SBR QSR ESG     # mix bare acronyms and aliases freely
 ```
+
+Acronyms and aliases are defined in `config.yaml` under `publications:` and `publication_aliases:`. Run `python scripts/collect_urls.py --list-pubs` to see the full set. The 19 supported acronyms are:
+
+`SBR`, `ABF`, `HCA`, `HKB`, `RA`, `REA`, `ABR`, `IA`, `AP`, `QSR-A`, `QSR-AU`, `QSR-UK`, `MA`, `AT`, `GovMedia`, `ESG`, `MR`, `DA`, `FA`. Aliases: `all` and `QSR`.
+
+**Important — every run wipes A2:H1000 of the sheet.** Filtered runs only refresh the selected pubs' rows; other pubs' historical data in the sheet is gone after the run. Re-run with no filter (or with their acronyms) to repopulate.
 
 The orchestrator follows `SKILL.md` exactly:
 
 1. Generates a per-run ID and run-dir
-2. Downloads the sheet → `cache/articles.json`
-3. Resolves account map (cached)
-4. Pulls **DeliveredPosts** + **QueuedPosts** for every (pub × platform) — **in parallel**
-5. Aggregates into `cache/posts.json`
-6. URL-first matches articles to posts
-7. Writes the markdown + CSV report to `runs/audit-<date>.{md,csv}`
-8. **Auto-commits** results to columns D-H of the sheet
+2. **Resolves the publication selector** (filter → list of allowed hostnames)
+3. Wipes A2:H1000 and writes the deduped URLs for selected pubs only
+4. Downloads the sheet → `cache/articles.json`
+5. Resolves account map (cached)
+6. Pulls **DeliveredPosts** + **QueuedPosts** for every article in `articles.json` — **in parallel**
+7. Aggregates into `cache/posts.json`
+8. URL-first matches articles to posts
+9. Writes the markdown + CSV report to `runs/audit-<date>.{md,csv}`
+10. **Auto-commits** results to columns D-H of the sheet
 
 Default is auto-commit. If you want a preview first, run the last script manually with `--dry-run`.
 

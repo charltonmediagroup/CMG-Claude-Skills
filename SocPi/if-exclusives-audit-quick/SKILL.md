@@ -17,6 +17,17 @@ This skill **shares all scripts, secrets, and cache** with the main `if-exclusiv
 
 If `~/.claude/skills/if-exclusives-audit/` is missing on this machine, this skill cannot run. Install both folders together when porting.
 
+## Publication selector — not supported in quick mode
+
+The main skill accepts a per-publication filter (`/if-exclusives-audit SBR HKB`). Quick mode **does not** — by definition it uses whatever URLs are already in column A and skips the URL-collection step where the filter would normally apply.
+
+If a user invokes the quick skill with acronyms (e.g. `/if-exclusives-audit-quick SBR HKB`), tell them their options:
+
+1. **Run the full skill instead**: `/if-exclusives-audit SBR HKB` — wipes column A and writes only those pubs' URLs, then audits.
+2. **Edit column A manually first**: delete URLs for pubs they don't want, then run `/if-exclusives-audit-quick` with no acronyms.
+
+Do not silently ignore acronyms passed to the quick variant — that would mislead the user into thinking they audited only SBR/HKB when they actually audited everything in column A.
+
 ## Execution flow (orchestrator follows this exactly)
 
 ### Step 0 — Generate run-id, cd into main skill folder

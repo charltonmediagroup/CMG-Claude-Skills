@@ -5,6 +5,8 @@ Reads:
   - "IF & Exclusives XML" tab, A2:B<n>: per-publication RSS feed URLs
         (col A = "In Focus" feed, col B = "Exclusives" feed)
   - "IF & Exclusives" tab, B1 and C1: date range (MM-DD-YYYY, inclusive)
+  - config.yaml (sibling of scripts/): publications + publication_aliases
+        for the --pubs selector
 
 Writes:
   - "IF & Exclusives" tab, A2:A: deduped URLs whose <pubDate> falls in range,
@@ -22,6 +24,7 @@ One bad feed never aborts the run. Hard-fails only on:
   - bad CLI args / missing flags
   - gspread auth failure
   - malformed B1/C1 date cells (or start > end)
+  - unrecognized --pubs acronym (exit 2)
   - zero URLs collected AND --allow-empty was not passed (exit 4)
 
 CLI:
@@ -31,7 +34,11 @@ CLI:
         --tab "IF & Exclusives" \\
         --xml-tab "IF & Exclusives XML" \\
         --log cache/url_collection_log.txt \\
+        [--pubs SBR,HKB,QSR] \\
         [--timeout 20] [--workers 16] [--allow-empty]
+
+    python collect_urls.py --list-pubs
+        # Print the acronym → host map and aliases, then exit.
 """
 
 import argparse
@@ -322,6 +329,119 @@ def wipe_and_write_column_a(ws_main, urls: list[str]) -> None:
                        value_input_option="USER_ENTERED")
 
 
+CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
+
+
+def _normalize_host(value: str) -> str:
+    """Lowercase, strip leading 'www.', strip trailing slash. Used to compare
+    XML-tab hostnames against the config.yaml `host:` values."""
+    if not value:
+        return ""
+    h = value.strip().lower()
+    if h.startswith("www."):
+        h = h[4:]
+    return h.rstrip("/")
+
+
+def load_publications_config() -> tuple[dict[str, str], dict[str, list[str]]]:
+    """Return (acronym → host, alias → [acronyms, ...]) preserving original
+    casing from config.yaml. Matching against user input is done elsewhere
+    via case-insensitive lookup. If config.yaml is missing or has no
+    `publications:` section, return empty maps — the caller falls back to
+    "no filter" behavior.
+    """
+    if not CONFIG_PATH.exists():
+        return {}, {}
+    try:
+        import yaml
+    except ImportError:
+        print("ERROR: --pubs requires PyYAML (pip install PyYAML)",
+              file=sys.stderr)
+        sys.exit(2)
+    cfg = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
+    pubs_raw = cfg.get("publications") or {}
+    aliases_raw = cfg.get("publication_aliases") or {}
+    pubs = {str(acr): _normalize_host(entry.get("host", ""))
+            for acr, entry in pubs_raw.items()}
+    aliases = {str(alias): [str(a) for a in members]
+               for alias, members in aliases_raw.items()}
+    return pubs, aliases
+
+
+def _ci_lookup(key: str, mapping: dict[str, object]) -> str | None:
+    """Return the original-cased key from `mapping` that matches `key`
+    case-insensitively, or None if no match. O(n) but n is tiny (<30)."""
+    target = key.strip().upper()
+    for k in mapping:
+        if k.upper() == target:
+            return k
+    return None
+
+
+def resolve_pub_selectors(selectors: list[str],
+                          pubs: dict[str, str],
+                          aliases: dict[str, list[str]]) -> set[str]:
+    """Given user-supplied tokens (acronyms or aliases, any case), return the
+    set of normalized hostnames to keep. Hard-fails (exit 2) on unknown tokens.
+    """
+    if not selectors:
+        # No filter → keep everything. Caller treats empty set as "no-op".
+        return {h for h in pubs.values() if h}
+    keep: set[str] = set()
+    unknown: list[str] = []
+    for tok in selectors:
+        if not tok.strip():
+            continue
+        alias_key = _ci_lookup(tok, aliases)
+        if alias_key:
+            for member in aliases[alias_key]:
+                pub_key = _ci_lookup(member, pubs)
+                if pub_key:
+                    keep.add(pubs[pub_key])
+                else:
+                    unknown.append(f"{tok} (alias references unknown {member})")
+            continue
+        pub_key = _ci_lookup(tok, pubs)
+        if pub_key:
+            keep.add(pubs[pub_key])
+        else:
+            unknown.append(tok)
+    if unknown:
+        print("ERROR: unknown publication selector(s): " + ", ".join(unknown),
+              file=sys.stderr)
+        print("       run `python collect_urls.py --list-pubs` to see valid acronyms",
+              file=sys.stderr)
+        sys.exit(2)
+    return keep
+
+
+def parse_pubs_arg(raw: str | None) -> list[str]:
+    """Split --pubs value on commas and whitespace, drop empties."""
+    if not raw:
+        return []
+    out = []
+    for piece in raw.replace(",", " ").split():
+        piece = piece.strip()
+        if piece:
+            out.append(piece)
+    return out
+
+
+def print_pub_list_and_exit() -> None:
+    pubs, aliases = load_publications_config()
+    if not pubs:
+        print("(no publications: section found in config.yaml)", file=sys.stderr)
+        sys.exit(1)
+    print("Publications (acronym -> host):")
+    for acr, host in pubs.items():
+        print(f"  {acr:10s} {host}")
+    if aliases:
+        print("\nAliases (expand to multiple acronyms):")
+        for alias, members in aliases.items():
+            print(f"  {alias:10s} {', '.join(members)}")
+    sys.exit(0)
+
+
 def write_log(path: Path, header: str, warnings: list[tuple]) -> None:
     """Append the run's warnings to the log file."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -333,12 +453,26 @@ def write_log(path: Path, header: str, warnings: list[tuple]) -> None:
 
 
 def main() -> None:
+    # --list-pubs is a discovery-only mode; handle it before the required args
+    # gate kicks in so the user can run it without an SA key etc.
+    if "--list-pubs" in sys.argv[1:]:
+        print_pub_list_and_exit()
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--sa", required=True)
     ap.add_argument("--sheet-id", required=True)
     ap.add_argument("--tab", default="IF & Exclusives")
     ap.add_argument("--xml-tab", default="IF & Exclusives XML")
     ap.add_argument("--log", default="cache/url_collection_log.txt")
+    ap.add_argument("--pubs", default=None,
+                    help="Comma- or space-separated publication acronyms / "
+                         "aliases to limit the run to (e.g. 'SBR,HKB' or "
+                         "'SBR HKB QSR'). Acronyms are case-insensitive. "
+                         "Use --list-pubs to see all valid acronyms. "
+                         "Omit the flag (or pass 'all') to audit every pub.")
+    ap.add_argument("--list-pubs", action="store_true",
+                    help="Print the acronym → host map and aliases, then exit. "
+                         "Does not require --sa or --sheet-id.")
     ap.add_argument("--timeout", type=int, default=60,
                     help="Per-feed HTTP timeout in seconds (default 60). "
                          "Bumped from 20 because some publication feeds are large.")
@@ -347,6 +481,19 @@ def main() -> None:
                     help="Don't hard-fail when 0 URLs result from the date window. "
                          "By default the script exits 4 to prevent silent wipe.")
     args = ap.parse_args()
+
+    # Resolve --pubs into a set of allowed hostnames (or empty set = no filter).
+    pubs_cfg, aliases_cfg = load_publications_config()
+    selectors = parse_pubs_arg(args.pubs)
+    if selectors and {s.upper() for s in selectors} == {"ALL"}:
+        # Treat 'all' as "no filter" without requiring the alias to be defined.
+        selectors = []
+    allowed_hosts = (resolve_pub_selectors(selectors, pubs_cfg, aliases_cfg)
+                     if selectors else set())
+    if selectors:
+        print(f"--pubs filter: {', '.join(selectors)} "
+              f"→ {len(allowed_hosts)} host(s): "
+              f"{', '.join(sorted(allowed_hosts))}", file=sys.stderr)
 
     try:
         import gspread
@@ -369,6 +516,22 @@ def main() -> None:
 
     feeds = read_xml_tab(ws_xml)
     print(f"feeds: {len(feeds)} publications", file=sys.stderr)
+
+    # Apply --pubs filter (if any) at the feed-row level. Pub label from the
+    # XML tab is already a normalized hostname; allowed_hosts is too.
+    if allowed_hosts:
+        before = len(feeds)
+        feeds = [(pub, if_url, ex_url) for pub, if_url, ex_url in feeds
+                 if _normalize_host(pub) in allowed_hosts]
+        skipped = before - len(feeds)
+        print(f"--pubs filter applied: kept {len(feeds)}, skipped {skipped} pub(s)",
+              file=sys.stderr)
+        if not feeds:
+            print("ERROR: --pubs filter resolved to 0 publications in the XML "
+                  "tab. Re-check spelling against `--list-pubs`. The XML tab "
+                  "may also be missing rows for the requested pubs.",
+                  file=sys.stderr)
+            sys.exit(2)
 
     # Build job list: (pub, kind, url) for each non-empty feed URL.
     jobs: list[tuple[str, str, str]] = []

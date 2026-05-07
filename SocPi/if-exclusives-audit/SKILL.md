@@ -1,6 +1,6 @@
 ---
 name: if-exclusives-audit
-description: Audit IF and EXCLUSIVE article distribution across 20 Charlton Media publications and their Facebook, Instagram, LinkedIn, and X accounts via SocialPilot. Detects both posted and scheduled posts. Use when the user asks for a distribution audit, asks "which articles weren't posted", asks "which are scheduled", asks for a coverage/SocialPilot/IF/EXCLUSIVE report, or invokes /if-exclusives-audit. Reads the canonical "Commercial SocPi - Links" Google Sheet (tab "IF & Exclusives") as the source of truth, pulls delivered + queued posts from SocialPilot, writes per-platform permalinks (or SCHEDULED markers) directly to columns D-H of the sheet.
+description: Audit IF and EXCLUSIVE article distribution across 19 Charlton Media publications and their Facebook, Instagram, LinkedIn, and X accounts via SocialPilot. Detects both posted and scheduled posts. Supports a per-publication selector — invocations like `/if-exclusives-audit SBR HKB`, `/if-exclusives-audit SBR,QSR`, or `/if-exclusives-audit just for retail asia` narrow the run to specific pubs (case-insensitive acronyms). Bare `/if-exclusives-audit` (or `/if-exclusives-audit all`) runs every pub. Use when the user asks for a distribution audit, asks "which articles weren't posted", asks "which are scheduled", asks "audit just SBR" / "only do HKB", asks for a coverage/SocialPilot/IF/EXCLUSIVE report, or invokes /if-exclusives-audit. Reads the canonical "Commercial SocPi - Links" Google Sheet (tab "IF & Exclusives") as the source of truth, pulls delivered + queued posts from SocialPilot, writes per-platform permalinks (or SCHEDULED markers) directly to columns D-H of the sheet.
 ---
 
 # IF & EXCLUSIVE Distribution Audit (v2)
@@ -42,17 +42,52 @@ Status hierarchy: `DUPLICATE ISSUE` > `COMPLETE` > `PARTIAL` > `SCHEDULED` > `MI
 
 In `Bash`: `RUN_ID=$(date +%s) ; mkdir -p ~/.claude/skills/if-exclusives-audit/cache/responses/$RUN_ID`. Use this dir for every response in this run.
 
+### Step 0.5 — Resolve the publication selector
+
+Parse the user's invocation for a publication filter. Acronyms are defined in `config.yaml` under `publications:` (and aliases under `publication_aliases:`). Run `python scripts/collect_urls.py --list-pubs` if you ever need to remind yourself of the exact set.
+
+**Recognized invocation forms:**
+
+| Invocation | Behavior |
+|---|---|
+| `/if-exclusives-audit` | Run all 19 pubs (no filter). |
+| `/if-exclusives-audit all` | Same as bare invocation. |
+| `/if-exclusives-audit SBR` | Single pub. |
+| `/if-exclusives-audit SBR HKB ABF` | Three specific pubs (space-separated). |
+| `/if-exclusives-audit SBR,HKB,ABF` | Same as above (comma-separated). |
+| `/if-exclusives-audit SBR HKB,QSR` | Mixed separators are fine. |
+| `/if-exclusives-audit QSR` | Alias `QSR` → all three QSR Media variants. |
+| Natural language: "audit just SBR", "only HKB and ABF" | Map to the matching acronyms before running. |
+
+Acronyms are **case-insensitive** (`sbr` and `SBR` are equivalent). If a token doesn't match any acronym or alias, **stop and ask the user** to clarify — do not silently drop unknown tokens.
+
+If a filter is in effect, pass it through as `--pubs <comma-separated>` to `collect_urls.py` in Step 1a. The rest of the pipeline (Steps 1b onwards) operates on whatever URLs land in column A, so no further filtering is needed downstream.
+
+**Always remind the user of the destructive semantics**: the run wipes A2:H1000 and writes only the selected pubs' URLs. Other pubs' historical audit data in the sheet will be gone after the run completes. To get them back, re-run with no filter (or with their acronyms).
+
 ### Step 1a — Collect URLs from XML feeds (auto-populate column A)
 
-Scrape RSS feeds from the **"IF & Exclusives XML"** tab (column A = "In Focus" feeds, column B = "Exclusives" feeds, ~19 publications), filter `<item>`s by the date range in **B1:C1 of "IF & Exclusives"** (format `MM-DD-YYYY`, inclusive on both ends), dedupe (an article in both IF and Exclusive feeds for the same pub appears once), and write the resulting URLs into column A of "IF & Exclusives". **This WIPES rows 2+ of column A** and replaces them. Header (row 1) is preserved.
+Scrape RSS feeds from the **"IF & Exclusives XML"** tab (column A = "In Focus" feeds, column B = "Exclusives" feeds, 19 publications), filter `<item>`s by the date range in **B1:C1 of "IF & Exclusives"** (format `MM-DD-YYYY`, inclusive on both ends), dedupe (an article in both IF and Exclusive feeds for the same pub appears once), and write the resulting URLs into column A of "IF & Exclusives". **This WIPES rows 2+ of column A AND columns D-H** (clears the audit area entirely so previous-run data doesn't get mixed with the new run). Header (row 1) is preserved.
+
+If Step 0.5 resolved a publication selector, pass `--pubs <list>` to limit which feeds are fetched.
 
 ```
+# All publications:
 python scripts/collect_urls.py \
     --sa secrets/gsheets-sa.json \
     --sheet-id 1DsjxLnlZDZmZMPuvVJaKLZ_rWgZML-AxuQ6zRSS1TXk \
     --tab "IF & Exclusives" \
     --xml-tab "IF & Exclusives XML" \
     --log cache/url_collection_log.txt
+
+# Filtered (only SBR + HKB):
+python scripts/collect_urls.py \
+    --sa secrets/gsheets-sa.json \
+    --sheet-id 1DsjxLnlZDZmZMPuvVJaKLZ_rWgZML-AxuQ6zRSS1TXk \
+    --tab "IF & Exclusives" \
+    --xml-tab "IF & Exclusives XML" \
+    --log cache/url_collection_log.txt \
+    --pubs SBR,HKB
 ```
 
 Inspect `cache/url_collection_log.txt` for warnings:
