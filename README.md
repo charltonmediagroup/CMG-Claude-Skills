@@ -11,6 +11,53 @@ Claude Code skills for the Charlton Media Group editorial, commercial, and socia
 | [`TDM-EMR/`](TDM-EMR/README.md) | `/earned-media-report` | Same as EMR but for Travel Daily Media (hospitality/travel brands). | Workspace |
 | [`SocPi/`](SocPi/README.md) | `/if-exclusives-audit`, `/if-exclusives-audit-quick` | Audit IF/EXCLUSIVE article distribution across 20 publications × Facebook/Instagram/LinkedIn/X via SocialPilot, write results back to the *Commercial SocPi - Links* sheet. | User skill |
 
+## Installation
+
+If you're a human, the manual `cp` / `Copy-Item` snippet under [Two packaging patterns](#two-packaging-patterns-both-supported) is the short version. If you're letting Claude Code do the install, just say something like:
+
+> *"Install the skills from this repo."*
+
+Claude will read this section as a runbook and execute the steps below. The exact playbook for an agent:
+
+### Step 1 — Install user skills (SocPi only)
+
+Copy these two folders verbatim into the user's home `.claude/skills/` directory. Create the directory if it doesn't exist.
+
+| Source (in this repo) | Destination |
+|---|---|
+| `SocPi/if-exclusives-audit/` | `~/.claude/skills/if-exclusives-audit/` (Windows: `%USERPROFILE%\.claude\skills\if-exclusives-audit\`) |
+| `SocPi/if-exclusives-audit-quick/` | `~/.claude/skills/if-exclusives-audit-quick/` |
+
+Use `cp -r` on POSIX, `Copy-Item -Recurse` on PowerShell, or `xcopy /E /I` on cmd. The folder names at the destination **must** stay exactly `if-exclusives-audit` and `if-exclusives-audit-quick` — they have to match the `name:` field inside each `SKILL.md`.
+
+If a destination folder already exists, **stop and ask the user** before overwriting — the existing copy may have their `secrets/gsheets-sa.json` or local edits. Do not delete or overwrite without explicit confirmation.
+
+### Step 2 — Do NOT copy the workspace skills
+
+`EMR/`, `Editorial/`, and `TDM-EMR/` are workspace skills, not user skills. They are invoked by `cd`-ing into their bundle folder and running `claude` — there is nothing to copy. Leave them in place inside the cloned repo.
+
+### Step 3 — Surface the remaining manual steps
+
+After Step 1, the SocPi skills are installed but not yet usable. Tell the user (in your reply, not by running the commands automatically) that they still need to:
+
+1. **Drop a Google service-account key** into `~/.claude/skills/if-exclusives-audit/secrets/gsheets-sa.json`. The repo contains `gsheets-sa.json.example` next to that location as a template. SA-key creation is documented under [Setting up the Google service account](#setting-up-the-google-service-account-one-time) below.
+2. **Install Python deps** for SocPi: `pip install -r ~/.claude/skills/if-exclusives-audit/requirements.txt`. EMR / TDM-EMR / Editorial have their own Python or Node requirements — see [Prerequisites](#prerequisites).
+3. **Configure MCP connectors** (Google Drive, SocialPilot) in Claude Code. See [MCP connectors](#mcp-connectors).
+4. **Restart Claude Code** so the newly installed skills are picked up. Until they restart, `/if-exclusives-audit` will not appear under `/`.
+
+### Step 4 — If the user wants to use a workspace skill (EMR / Editorial / TDM-EMR)
+
+Tell them to `cd` into that bundle and run `claude` from there:
+
+```bash
+cd EMR        # or Editorial, or TDM-EMR
+claude
+```
+
+The skill is auto-discovered from `<bundle>/.claude/skills/<name>/SKILL.md`. There is no install step — the workspace folder is the install.
+
+---
+
 ## Two packaging patterns, both supported
 
 The bundles use whichever pattern fits best — there's no need to standardize.

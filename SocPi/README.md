@@ -11,7 +11,13 @@ Two related Claude Code skills for auditing IF/EXCLUSIVE article distribution ac
 
 ## Packaging — these are user skills
 
-Unlike the EMR/Editorial/TDM-EMR workspaces in this repo, the two SocPi skills are intended to be **installed into your Claude Code user-skills directory** so the slash commands work from any folder on disk:
+Unlike the EMR/Editorial/TDM-EMR workspaces in this repo, the two SocPi skills are intended to be **installed into your Claude Code user-skills directory** so the slash commands work from any folder on disk.
+
+The easiest install path is to ask Claude Code itself:
+
+> *"Install the skills from this repo."*
+
+It will read [the Installation section in the root `README.md`](../README.md#installation) (and [`CLAUDE.md`](../CLAUDE.md)) and run the right copy commands for your OS, then surface the remaining manual steps (SA key, `pip install`, MCP connectors, restart). Manual install is also fine:
 
 ```bash
 # Windows (in bash / Git Bash)
