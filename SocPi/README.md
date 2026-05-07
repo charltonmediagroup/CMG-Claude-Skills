@@ -17,7 +17,7 @@ The easiest install path is to ask Claude Code itself:
 
 > *"Install the skills from this repo."*
 
-It will read [the Installation section in the root `README.md`](../README.md#installation) (and [`CLAUDE.md`](../CLAUDE.md)) and run the right copy commands for your OS, then surface the remaining manual steps (SA key, `pip install`, MCP connectors, restart). Manual install is also fine:
+It will read [the Installation section in the root `README.md`](../README.md#installation) (and [`CLAUDE.md`](../CLAUDE.md)) and run the right copy commands for your OS — **including `python -m pip install -r requirements.txt`** — then surface the remaining manual steps (SA key, MCP connectors, `anthropic-skills` plugin, Claude Code restart). Manual install is also fine:
 
 ```bash
 # Windows (in bash / Git Bash)

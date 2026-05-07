@@ -17,44 +17,67 @@ If you're a human, the manual `cp` / `Copy-Item` snippet under [Two packaging pa
 
 > *"Install the skills from this repo."*
 
-Claude will read this section as a runbook and execute the steps below. The exact playbook for an agent:
+Claude will read this section (and [`CLAUDE.md`](CLAUDE.md)) as a runbook and execute every step that doesn't require credentials or settings access — including any `pip install`. You only have to do four things by hand: drop in a Google SA key, configure MCP connectors, install the `anthropic-skills` plugin, and restart Claude Code. The exact playbook an agent follows:
 
-### Step 1 — Install user skills (SocPi only)
+### Step 1 — Detect runtimes (must pass before anything else runs)
 
-Copy these two folders verbatim into the user's home `.claude/skills/` directory. Create the directory if it doesn't exist.
+The agent verifies the colleague's machine has the runtimes the skills need. Both are quick installs from official sources, but the agent does **not** install them — it just checks and stops if missing.
+
+- **Python ≥ 3.10** (used by SocPi and Editorial). If missing, install from <https://www.python.org/downloads/>. On Windows, tick "Add Python to PATH" during install.
+- **Node ≥ 18** (used by EMR and TDM-EMR scrapers — built-in `fetch` requires v18). If missing, install from <https://nodejs.org/> (LTS).
+
+If either is missing, the agent surfaces a friendly message and stops. Re-run the install request once the runtime is on PATH.
+
+### Step 2 — Install user skills (SocPi only)
+
+Copy these two folders verbatim into the user's home `.claude/skills/` directory. The agent creates the directory if it doesn't exist.
 
 | Source (in this repo) | Destination |
 |---|---|
 | `SocPi/if-exclusives-audit/` | `~/.claude/skills/if-exclusives-audit/` (Windows: `%USERPROFILE%\.claude\skills\if-exclusives-audit\`) |
 | `SocPi/if-exclusives-audit-quick/` | `~/.claude/skills/if-exclusives-audit-quick/` |
 
-Use `cp -r` on POSIX, `Copy-Item -Recurse` on PowerShell, or `xcopy /E /I` on cmd. The folder names at the destination **must** stay exactly `if-exclusives-audit` and `if-exclusives-audit-quick` — they have to match the `name:` field inside each `SKILL.md`.
+The agent uses `cp -r` on POSIX, `Copy-Item -Recurse` on PowerShell, or `xcopy /E /I` on cmd. The folder names at the destination **must** stay exactly `if-exclusives-audit` and `if-exclusives-audit-quick` — they have to match the `name:` field inside each `SKILL.md`.
 
-If a destination folder already exists, **stop and ask the user** before overwriting — the existing copy may have their `secrets/gsheets-sa.json` or local edits. Do not delete or overwrite without explicit confirmation.
+If a destination folder already exists, the agent **stops and asks** before overwriting — the existing copy may have your real `secrets/gsheets-sa.json` and local edits. Nothing is overwritten without explicit confirmation.
 
-### Step 2 — Do NOT copy the workspace skills
+### Step 3 — Auto-install Python dependencies
 
-`EMR/`, `Editorial/`, and `TDM-EMR/` are workspace skills, not user skills. They are invoked by `cd`-ing into their bundle folder and running `claude` — there is nothing to copy. Leave them in place inside the cloned repo.
+The agent runs `pip install` for you. No manual command needed.
 
-### Step 3 — Surface the remaining manual steps
+```bash
+# SocPi (run after Step 2 succeeds)
+python -m pip install -r ~/.claude/skills/if-exclusives-audit/requirements.txt
 
-After Step 1, the SocPi skills are installed but not yet usable. Tell the user (in your reply, not by running the commands automatically) that they still need to:
+# Editorial (run if you said "install everything" or specifically asked for Editorial)
+python -m pip install -r Editorial/.claude/skills/editorial-video-researcher/requirements.txt
+```
 
-1. **Drop a Google service-account key** into `~/.claude/skills/if-exclusives-audit/secrets/gsheets-sa.json`. The repo contains `gsheets-sa.json.example` next to that location as a template. SA-key creation is documented under [Setting up the Google service account](#setting-up-the-google-service-account-one-time) below.
-2. **Install Python deps** for SocPi: `pip install -r ~/.claude/skills/if-exclusives-audit/requirements.txt`. EMR / TDM-EMR / Editorial have their own Python or Node requirements — see [Prerequisites](#prerequisites).
-3. **Configure MCP connectors** (Google Drive, SocialPilot) in Claude Code. See [MCP connectors](#mcp-connectors).
-4. **Restart Claude Code** so the newly installed skills are picked up. Until they restart, `/if-exclusives-audit` will not appear under `/`.
+If pip fails with a permissions error on a locked-down Windows machine, the agent retries with `--user`. EMR and TDM-EMR have zero Node dependencies — no `npm install` step.
 
-### Step 4 — If the user wants to use a workspace skill (EMR / Editorial / TDM-EMR)
+### Step 4 — Do NOT copy the workspace skills
 
-Tell them to `cd` into that bundle and run `claude` from there:
+`EMR/`, `Editorial/`, and `TDM-EMR/` are workspace skills, not user skills. They are invoked by `cd`-ing into their bundle folder and running `claude` — there is nothing to copy. The agent leaves them in place inside the cloned repo.
+
+### Step 5 — The four remaining manual steps
+
+After Steps 2 and 3 land, the agent surfaces these — they involve credentials, OAuth, or a Claude Code restart, so the agent cannot do them for you:
+
+1. **Drop a Google service-account key** at `~/.claude/skills/if-exclusives-audit/secrets/gsheets-sa.json` (and at `Editorial/.claude/skills/editorial-video-researcher/secrets/gsheets-sa.json` if you'll use Editorial). There is a `gsheets-sa.json.example` next to each as a template. Setup walkthrough: [Setting up the Google service account](#setting-up-the-google-service-account-one-time).
+2. **Configure MCP connectors** (Google Drive + SocialPilot) in Claude Code. The OAuth flow happens in Claude Code's settings panel. Details: [MCP connectors](#mcp-connectors).
+3. **Install the `anthropic-skills` plugin** in Claude Code (Settings → Plugins). Used by EMR/TDM-EMR for DOCX rendering and PDF reading.
+4. **Restart Claude Code** so the newly installed skills are picked up. Until you restart, `/if-exclusives-audit` will not appear under `/`.
+
+### Step 6 — If you want to use a workspace skill (EMR / Editorial / TDM-EMR)
+
+Just `cd` into that bundle and run `claude` from there:
 
 ```bash
 cd EMR        # or Editorial, or TDM-EMR
 claude
 ```
 
-The skill is auto-discovered from `<bundle>/.claude/skills/<name>/SKILL.md`. There is no install step — the workspace folder is the install.
+The skill is auto-discovered from `<bundle>/.claude/skills/<name>/SKILL.md`. No install step — the workspace folder is the install. (Editorial still needs its Python deps from Step 3 and an SA key from Step 5.1; TDM-EMR additionally needs `Media Kit.pdf` for the Recommendations section.)
 
 ---
 
@@ -95,9 +118,9 @@ Before any bundle will run, you need:
 
 - **Claude Code** ([install instructions](https://docs.claude.com/en/docs/claude-code)). Each bundle's README lists the slash command to invoke.
 - **Node.js 18+** on PATH — used by EMR and TDM-EMR scrapers (built-in `fetch`). Zero `npm install` required; both scrapers are dependency-free.
-- **Python 3.10+** on PATH — used by Editorial and SocPi.
-  - Editorial: `pip install gspread google-auth requests PyYAML`
-  - SocPi: `pip install -r SocPi/if-exclusives-audit/requirements.txt`
+- **Python 3.10+** on PATH — used by Editorial and SocPi. The agent install playbook (see [Installation](#installation)) auto-runs `pip install` for both, so you don't need to do this by hand. If you're installing manually:
+  - SocPi: `python -m pip install -r SocPi/if-exclusives-audit/requirements.txt`
+  - Editorial: `python -m pip install -r Editorial/.claude/skills/editorial-video-researcher/requirements.txt`
 
 ### Required Anthropic skills (DOCX rendering, PDF reading)
 

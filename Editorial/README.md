@@ -11,6 +11,7 @@ Editorial/
 └── .claude/skills/editorial-video-researcher/
     ├── SKILL.md                                 ← runbook Claude Code follows
     ├── config.yaml                              ← 11 publications + feed URLs + dedupe rules
+    ├── requirements.txt                         ← Python deps (gspread, google-auth, PyYAML)
     ├── scripts/
     │   ├── fetch_feed.py                        ← top-read feed → article URLs
     │   ├── fetch_article.py                     ← URL → title + body text
@@ -24,7 +25,7 @@ Editorial/
 
 ## Requirements
 
-- **Python 3.10+** with `pip install gspread google-auth requests PyYAML`.
+- **Python 3.10+** with deps from [`requirements.txt`](.claude/skills/editorial-video-researcher/requirements.txt) (`gspread`, `google-auth`, `PyYAML`). Installed automatically by the agent install playbook in the top-level [`README.md`](../README.md#installation); manual install is `python -m pip install -r .claude/skills/editorial-video-researcher/requirements.txt`.
 - **Claude Code** opened with the `Editorial/` folder as the working directory.
 - **Google Drive MCP connector** in Claude Code (used to read the source sheet).
 - A **Google service-account key** with Editor access to the *Copy of 2025-2026 Asian Business Media* sheet (`1QD8X7lphuy0ryxqhHKMxYYVARm2IB9IlRheBlt21xdU`). See the top-level [`README.md`](../README.md#setting-up-the-google-service-account-one-time) for SA setup.
