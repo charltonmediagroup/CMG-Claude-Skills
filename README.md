@@ -10,6 +10,7 @@ Claude Code skills for the Charlton Media Group editorial, commercial, and socia
 | [`Editorial/`](Editorial/README.md) | `/editorial-video-researcher` | AI-draft discussion topics + 5 C-suite questions per article and append to the `[2026] Discussion Topic` Google Sheet tab. | Workspace |
 | [`TDM-EMR/`](TDM-EMR/README.md) | `/earned-media-report` | Same as EMR but for Travel Daily Media (hospitality/travel brands). | Workspace |
 | [`SocPi/`](SocPi/README.md) | `/if-exclusives-audit`, `/if-exclusives-audit-quick` | Audit IF/EXCLUSIVE article distribution across 20 publications × Facebook/Instagram/LinkedIn/X via SocialPilot, write results back to the *Commercial SocPi - Links* sheet. | User skill |
+| [`Sales/competitors-and-leads/`](Sales/competitors-and-leads/README.md) | `/sales-find-competitors`, `/sales-find-pocs`, `/sales-research-competitor`, `/sales-draft-emails`, `/sales-pipeline-all` | Five-phase sales prospecting pipeline ported from the n8n *Sales - Competitors and Leads* workflow. Finds competitors → POCs → researches → drafts personalized B2B emails into the *Existing Clients (2021 to 2025)* sheet. | User skills (5) sharing one bundle |
 
 ## Installation
 
@@ -28,7 +29,7 @@ The agent verifies the colleague's machine has the runtimes the skills need. Bot
 
 If either is missing, the agent surfaces a friendly message and stops. Re-run the install request once the runtime is on PATH.
 
-### Step 2 — Install user skills (SocPi only)
+### Step 2 — Install SocPi user skills
 
 Copy these two folders verbatim into the user's home `.claude/skills/` directory. The agent creates the directory if it doesn't exist.
 
@@ -41,6 +42,23 @@ The agent uses `cp -r` on POSIX, `Copy-Item -Recurse` on PowerShell, or `xcopy /
 
 If a destination folder already exists, the agent **stops and asks** before overwriting — the existing copy may have your real `secrets/gsheets-sa.json` and local edits. Nothing is overwritten without explicit confirmation.
 
+A short SocPi-specific runbook lives at [`SocPi/INSTALL.md`](SocPi/INSTALL.md).
+
+### Step 2b — Install Sales user skills (only if you asked for Sales)
+
+The Sales bundle is **two-target**: the orchestration code lives at `~/.claude/competitors-and-leads/`, and the 5 thin SKILL.md folders go to `~/.claude/skills/`. The agent only runs this step if the user mentioned "sales", "competitors and leads", or one of the `/sales-*` commands.
+
+| Source (in this repo) | Destination |
+|---|---|
+| `Sales/competitors-and-leads/` | `~/.claude/competitors-and-leads/` |
+| `Sales/competitors-and-leads/skills/sales-find-competitors/` | `~/.claude/skills/sales-find-competitors/` |
+| `Sales/competitors-and-leads/skills/sales-find-pocs/` | `~/.claude/skills/sales-find-pocs/` |
+| `Sales/competitors-and-leads/skills/sales-research-competitor/` | `~/.claude/skills/sales-research-competitor/` |
+| `Sales/competitors-and-leads/skills/sales-draft-emails/` | `~/.claude/skills/sales-draft-emails/` |
+| `Sales/competitors-and-leads/skills/sales-pipeline-all/` | `~/.claude/skills/sales-pipeline-all/` |
+
+Same overwrite policy — the agent stops and asks if any destination already exists. Detailed step-by-step (with PowerShell + POSIX commands) is in [`Sales/competitors-and-leads/INSTALL.md`](Sales/competitors-and-leads/INSTALL.md).
+
 ### Step 3 — Auto-install Python dependencies
 
 The agent runs `pip install` for you. No manual command needed.
@@ -51,6 +69,9 @@ python -m pip install -r ~/.claude/skills/if-exclusives-audit/requirements.txt
 
 # Editorial (run if you said "install everything" or specifically asked for Editorial)
 python -m pip install -r Editorial/.claude/skills/editorial-video-researcher/requirements.txt
+
+# Sales (run only if Step 2b ran)
+python -m pip install -r ~/.claude/competitors-and-leads/requirements.txt
 ```
 
 If pip fails with a permissions error on a locked-down Windows machine, the agent retries with `--user`. EMR and TDM-EMR have zero Node dependencies — no `npm install` step.
@@ -63,10 +84,11 @@ If pip fails with a permissions error on a locked-down Windows machine, the agen
 
 After Steps 2 and 3 land, the agent surfaces these — they involve credentials, OAuth, or a Claude Code restart, so the agent cannot do them for you:
 
-1. **Drop a Google service-account key** at `~/.claude/skills/if-exclusives-audit/secrets/gsheets-sa.json` (and at `Editorial/.claude/skills/editorial-video-researcher/secrets/gsheets-sa.json` if you'll use Editorial). There is a `gsheets-sa.json.example` next to each as a template. Setup walkthrough: [Setting up the Google service account](#setting-up-the-google-service-account-one-time).
+1. **Drop a Google service-account key** at `~/.claude/skills/if-exclusives-audit/secrets/gsheets-sa.json` (and at `Editorial/.claude/skills/editorial-video-researcher/secrets/gsheets-sa.json` if you'll use Editorial). There is a `gsheets-sa.json.example` next to each as a template. Setup walkthrough: [Setting up the Google service account](#setting-up-the-google-service-account-one-time). The Sales bundle reuses this same SocPi key by default.
 2. **Configure MCP connectors** (Google Drive + SocialPilot) in Claude Code. The OAuth flow happens in Claude Code's settings panel. Details: [MCP connectors](#mcp-connectors).
 3. **Install the `anthropic-skills` plugin** in Claude Code (Settings → Plugins). Used by EMR/TDM-EMR for DOCX rendering and PDF reading.
-4. **Restart Claude Code** so the newly installed skills are picked up. Until you restart, `/if-exclusives-audit` will not appear under `/`.
+4. **For Sales only — populate `~/.claude/competitors-and-leads/secrets/api_keys.json`** with SerpAPI / Tavily / Apify / Hunter keys. The example file lists where to find each in the n8n workflow. See [`Sales/competitors-and-leads/INSTALL.md`](Sales/competitors-and-leads/INSTALL.md) Step 4.
+5. **Restart Claude Code** so the newly installed skills are picked up. Until you restart, `/if-exclusives-audit`, `/sales-*`, etc. will not appear under `/`.
 
 ### Step 6 — If you want to use a workspace skill (EMR / Editorial / TDM-EMR)
 
@@ -173,6 +195,14 @@ Each bundle's README has the full runbook. The condensed version:
 4. `pip install -r ~/.claude/skills/if-exclusives-audit/requirements.txt`.
 5. From any folder: `/if-exclusives-audit`.
 
+### Sales (`sales-find-competitors`, `sales-find-pocs`, `sales-research-competitor`, `sales-draft-emails`, `sales-pipeline-all`)
+
+1. Two-target install — copy `Sales/competitors-and-leads/` to `~/.claude/competitors-and-leads/`, then copy the 5 thin SKILL.md folders under `Sales/competitors-and-leads/skills/` into `~/.claude/skills/`. Step-by-step in [`Sales/competitors-and-leads/INSTALL.md`](Sales/competitors-and-leads/INSTALL.md).
+2. `pip install -r ~/.claude/competitors-and-leads/requirements.txt`.
+3. Reuses the SocPi SA key by default. Share the *Existing Clients (2021 to 2025)* sheet with that SA email as **Editor**.
+4. Populate `~/.claude/competitors-and-leads/secrets/api_keys.json` with SerpAPI / Tavily / Apify / Hunter keys (template at `api_keys.json.example`; locations in the n8n workflow listed in the INSTALL.md table).
+5. Smoke-test each phase with `--dry-run` (no external API calls). Then from any folder: `/sales-pipeline-all` or any of the per-phase commands.
+
 ## Setting up the Google service account (one-time)
 
 The same SA key can drive both Editorial and SocPi:
@@ -223,16 +253,24 @@ The top-level [`.gitignore`](.gitignore) covers all four bundles. The short vers
 │   ├── scripts/earned-media-report.mjs
 │   ├── output/                                  ← run outputs (gitignored)
 │   └── .claude/skills/earned-media-report/SKILL.md
-└── SocPi/                                       ← user skills (install to ~/.claude/skills/)
-    ├── README.md
-    ├── if-exclusives-audit/
-    │   ├── SKILL.md, README.md, config.yaml, requirements.txt
-    │   ├── scripts/*.py
-    │   ├── cache/, runs/                        ← per-run scratch (gitignored)
-    │   └── secrets/                             ← drop SA key here (gitignored)
-    └── if-exclusives-audit-quick/
-        ├── SKILL.md, README.md
-        └── (no scripts — piggybacks on the main skill)
+├── SocPi/                                       ← user skills (install to ~/.claude/skills/)
+│   ├── README.md, INSTALL.md
+│   ├── if-exclusives-audit/
+│   │   ├── SKILL.md, README.md, config.yaml, requirements.txt
+│   │   ├── scripts/*.py
+│   │   ├── cache/, runs/                        ← per-run scratch (gitignored)
+│   │   └── secrets/                             ← drop SA key here (gitignored)
+│   └── if-exclusives-audit-quick/
+│       ├── SKILL.md, README.md
+│       └── (no scripts — piggybacks on the main skill)
+└── Sales/competitors-and-leads/                 ← bundle: code → ~/.claude/competitors-and-leads/
+    ├── INSTALL.md, README.md
+    ├── run.py, requirements.txt
+    ├── lib/                                     ← phase modules + platform adapters
+    ├── output/                                  ← per-phase JSON intermediates (gitignored)
+    ├── secrets/                                 ← drop api_keys.json here (gitignored)
+    └── skills/sales-{find-competitors,find-pocs,research-competitor,draft-emails,pipeline-all}/
+                                                  ← thin SKILL.md folders → ~/.claude/skills/
 ```
 
 ## End-user installation guide

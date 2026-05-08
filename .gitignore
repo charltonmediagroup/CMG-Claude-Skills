@@ -57,6 +57,12 @@ SocPi/if-exclusives-audit/runs/*.csv
 !SocPi/if-exclusives-audit/runs/.gitkeep
 
 # =============================================================================
+# Sales/competitors-and-leads — per-run JSON artefacts
+# =============================================================================
+Sales/competitors-and-leads/output/*
+!Sales/competitors-and-leads/output/.gitkeep
+
+# =============================================================================
 # Python / Node / OS junk
 # =============================================================================
 __pycache__/

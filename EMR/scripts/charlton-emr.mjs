@@ -43,6 +43,9 @@ const SITES = {
     domain: 'asianbankingandfinance.net',
     publication: 'Asian Banking & Finance',
     titleSuffixRe: /\s*[|\-–]\s*Asian\s*Banking\s*(?:&|and|&amp;)\s*Finance.*$/i,
+    // ABF runs the Simple XML Sitemap Drupal module, which serves the index
+    // at /<variant>/sitemap.xml — not the root /sitemap.xml served by the other pubs.
+    sitemapPath: '/1/sitemap.xml',
   },
   ABR: {
     domain: 'asianbusinessreview.com',
@@ -77,7 +80,11 @@ function parseArgs(argv) {
     site: null,
     brand: null,
     keywords: null,
-    outputDir: 'EMR/output',
+    // Resolved relative to the cwd from which the script is invoked, which is
+    // the workspace root (the EMR/ folder containing this script's package.json,
+    // SKILL.md, and Media Kit PDFs). Matches the path layout documented in SKILL.md
+    // ("output/<ACRONYM>/.cache/...") and the gitignore rule "EMR/output/*/".
+    outputDir: 'output',
     rateMs: 1500,
     concurrency: 6,
     maxBodyChars: 350,
@@ -205,8 +212,9 @@ function extractSitemapLocs(xml) {
   return out;
 }
 
-async function walkSitemap(domain, { rateMs, maxSitemapPages }) {
-  const indexUrl = `https://${domain}/sitemap.xml`;
+async function walkSitemap(domain, { rateMs, maxSitemapPages, sitemapPath }) {
+  const path = sitemapPath || '/sitemap.xml';
+  const indexUrl = `https://${domain}${path}`;
   const indexXml = await fetchHtml(indexUrl, { timeoutMs: 30000, retries: 3 });
   // The Drupal sitemap_generator emits a <sitemapindex> with <sitemap><loc>...</loc>.
   // extractSitemapLocs returns every <loc> regardless of whether it's an index entry
@@ -401,7 +409,7 @@ async function main() {
   const slug = slugify(args.brand);
 
   console.error(`\n[1/4] Walking sitemap on ${site.domain} (${site.publication}) ...`);
-  const allUrls = await walkSitemap(site.domain, args);
+  const allUrls = await walkSitemap(site.domain, { ...args, sitemapPath: site.sitemapPath });
   console.error(`  -> ${allUrls.length} unique URLs from sitemap`);
 
   console.error(`\n[2/4] URL pre-filter (drop sponsored, keep slug-keyword matches) ...`);

@@ -172,9 +172,13 @@ The saver writes one `<slug>__<kind>.json` file per entry. The aggregator derive
 
 The cost of doing this step "cleverly" with per-file Writes is ~10 minutes of round-trips. The cost of one Write + one Bash is ~5 seconds. Trust the batch.
 
-### IF YOU MUST FILTER — exact keep-list (and why)
+### Trimming responses for large audits (canonical path for N > ~15 articles)
 
-If context size genuinely forces filtering, every record MUST retain these fields. Stripping any of them causes the aggregator to drop records silently (well, loudly now — it will exit 3). Past sessions have stripped `postId` and lost everything; do not repeat that mistake.
+For small audits (<15 articles, single-pub) raw verbatim responses fit in one Write call. Past that, the batch input file exceeds ~500KB and the verbatim path becomes impractical — **trimming is the normal approach**, not an emergency workaround.
+
+Cross-pub distribution amplifies this fast: one article posted across ESG + Marine + ABR + SBR returns ~16 records on a single delivered query. A 29-article audit with cross-pub coverage produced ~140 records totaling >500KB raw.
+
+**Stripping any of the fields below causes the aggregator to drop records silently (well, loudly now — it will exit 3).** Past sessions have stripped `postId` and lost everything; do not repeat that mistake.
 
 Per-record keep-list:
 

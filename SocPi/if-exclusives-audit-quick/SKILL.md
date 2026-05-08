@@ -62,9 +62,28 @@ If `cache/account_map.json` exists, skip. Otherwise call SocialPilot `GroupList`
 
 Same as main skill Step 3. Fire **all** `DeliveredPosts(q=<slug>)` and `QueuedPosts(q=<slug>)` calls in **a single parallel batch** (one Claude message with N tool-use blocks, where N = 2 × number of articles). No `account` filter needed.
 
-### Step 3b — Save responses with `--auto-batch`
+### Step 3a — Write the batch input file (with trimming for large audits)
 
-Write a single batch input file then run the saver once:
+Build one JSON array `[{slug, kind, response}, ...]` and write it to `cache/responses/$RUN_ID/_batch_input.json` in a SINGLE `Write` call.
+
+**Trim per-record before writing if N > ~15 articles or if any cross-pub distribution is in scope.** Raw MCP responses are 5-30KB each (profile pics, image URLs, account metadata) and a verbatim batch easily exceeds 500KB — too bulky for a single Write call. Trimming is the canonical path for any non-trivial audit, not an emergency workaround.
+
+**Per-record keep-list** (drop anything else):
+
+| Field | Required for | Notes |
+|---|---|---|
+| `postId` | Aggregator dedup | **Drop = total failure.** |
+| `loginId` | Pub/platform routing | **Drop = total failure.** |
+| `accountId` *or* `platformId` | Platform fallback | One of the two is enough. |
+| `postUrl` | Matcher fast-path | Empty for IG — that's normal, slug fallback handles it. |
+| `postDesc` | Matcher slug-fallback + duplicate detection | Do NOT drop — IG matching depends on the slug appearing here. |
+| `redirectUrl` | Permalink written to sheet | Drop = blanks in columns D-G. |
+| `postDate` *or* `postTimeFormat` | Timestamps | At least one. |
+| `scheduleDateUtc` | Scheduled posts only | Skip for delivered. |
+
+If `aggregate_posts.py` exits with code 3, you over-trimmed — restore the missing field and re-run save_mcp_response.py.
+
+### Step 3b — Run the saver (one Bash call)
 
 ```
 python scripts/save_mcp_response.py --auto-batch \

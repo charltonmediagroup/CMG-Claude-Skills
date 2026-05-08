@@ -4,12 +4,13 @@ This file tells any Claude Code agent that lands in this repo how to work with i
 
 ## What this repo is
 
-Four Claude Code skill bundles for Charlton Media Group:
+Five Claude Code skill bundles for Charlton Media Group:
 
 - `EMR/` — `/charlton-earned-media-report` (workspace skill)
 - `Editorial/` — `/editorial-video-researcher` (workspace skill)
 - `TDM-EMR/` — `/earned-media-report` (workspace skill)
 - `SocPi/if-exclusives-audit/` and `SocPi/if-exclusives-audit-quick/` (user skills)
+- `Sales/competitors-and-leads/` — `/sales-find-competitors`, `/sales-find-pocs`, `/sales-research-competitor`, `/sales-draft-emails`, `/sales-pipeline-all` (5 user skills sharing one bundle)
 
 Full docs are in [README.md](README.md). This file is the short, agent-facing version.
 
@@ -65,6 +66,23 @@ If a destination exists, **STOP and ask the user** whether to overwrite. The exi
 
 **Folder names at the destination must stay exactly** `if-exclusives-audit` and `if-exclusives-audit-quick` — they must match the `name:` field in each `SKILL.md`. Do not rename.
 
+#### Step 2b — Install Sales/competitors-and-leads (only if user asked for it)
+
+Install only when the user mentions "sales", "competitors and leads", or runs the per-phase commands. Skip otherwise — it has its own API keys to populate.
+
+Two-target install (the bundle code, then the 5 thin SKILL.md folders):
+
+| From (this repo) | To |
+|---|---|
+| `Sales/competitors-and-leads/` | `~/.claude/competitors-and-leads/` |
+| `Sales/competitors-and-leads/skills/sales-find-competitors/` | `~/.claude/skills/sales-find-competitors/` |
+| `Sales/competitors-and-leads/skills/sales-find-pocs/` | `~/.claude/skills/sales-find-pocs/` |
+| `Sales/competitors-and-leads/skills/sales-research-competitor/` | `~/.claude/skills/sales-research-competitor/` |
+| `Sales/competitors-and-leads/skills/sales-draft-emails/` | `~/.claude/skills/sales-draft-emails/` |
+| `Sales/competitors-and-leads/skills/sales-pipeline-all/` | `~/.claude/skills/sales-pipeline-all/` |
+
+Check both targets first; ask before overwriting. Then copy the bundle, then copy the 5 SKILL.md folders. Detailed steps in [Sales/competitors-and-leads/INSTALL.md](Sales/competitors-and-leads/INSTALL.md).
+
 #### Step 3 — Auto-install Python dependencies
 
 Run pip install yourself — do not ask the user to run it. Always use `python -m pip` (more reliable than bare `pip` when multiple Python installs exist on Windows).
@@ -81,6 +99,12 @@ python -m pip install -r ~/.claude/skills/if-exclusives-audit/requirements.txt
 
 ```
 python -m pip install -r Editorial/.claude/skills/editorial-video-researcher/requirements.txt
+```
+
+**3b2. Sales/competitors-and-leads deps** (only if the user asked to install Sales/competitors-and-leads — see Step 2b below):
+
+```
+python -m pip install -r ~/.claude/competitors-and-leads/requirements.txt
 ```
 
 **3c. Permission fallback.** If pip fails with a permissions error (common on locked-down Windows boxes), retry with `--user`:
@@ -101,10 +125,11 @@ If `--user` also fails, **show the user the exact pip output and stop** — don'
 
 After Steps 2 and 3 land successfully, tell the user (in your reply, do **not** run these yourself):
 
-1. **Drop a Google service-account key** at `~/.claude/skills/if-exclusives-audit/secrets/gsheets-sa.json`. There is a `gsheets-sa.json.example` next to it as a template. SA-key creation flow is in `README.md` under "Setting up the Google service account". The same key works for Editorial — drop a copy at `Editorial/.claude/skills/editorial-video-researcher/secrets/gsheets-sa.json` if they plan to use that skill.
+1. **Drop a Google service-account key** at `~/.claude/skills/if-exclusives-audit/secrets/gsheets-sa.json`. There is a `gsheets-sa.json.example` next to it as a template. SA-key creation flow is in `README.md` under "Setting up the Google service account". The same key works for Editorial — drop a copy at `Editorial/.claude/skills/editorial-video-researcher/secrets/gsheets-sa.json` if they plan to use that skill. The Sales/competitors-and-leads bundle reuses this same SocPi SA key by default (configured in `~/.claude/competitors-and-leads/secrets/api_keys.json`).
 2. **Configure MCP connectors** in Claude Code: Google Drive (used by Editorial + SocPi) and SocialPilot (used by SocPi). Details in `README.md` under "MCP connectors". The OAuth flow has to happen in Claude Code's settings panel — you can't drive it.
 3. **Install the `anthropic-skills` plugin** in Claude Code (Settings → Plugins). Used by EMR/TDM-EMR for DOCX rendering and PDF reading. Without it those skills stall at the rendering step.
-4. **Restart Claude Code** so the new skills are picked up under `/`. Until they restart, `/if-exclusives-audit` will not appear in the slash-command list.
+4. **For Sales/competitors-and-leads only:** populate `~/.claude/competitors-and-leads/secrets/api_keys.json` with SerpAPI / Tavily / Apify / Hunter keys. The example file lists where to find each in the n8n workflow. See [Sales/competitors-and-leads/INSTALL.md](Sales/competitors-and-leads/INSTALL.md) Step 4.
+5. **Restart Claude Code** so the new skills are picked up under `/`. Until they restart, `/if-exclusives-audit`, `/sales-*` etc. will not appear in the slash-command list.
 
 #### Step 6 — If the user wants a workspace skill (EMR / Editorial / TDM-EMR)
 
@@ -136,7 +161,10 @@ The skill auto-loads from `<bundle>/.claude/skills/<name>/SKILL.md`. Editorial s
 ├── EMR/                           ← workspace skill
 ├── Editorial/                     ← workspace skill (needs SA key + Python deps)
 ├── TDM-EMR/                       ← workspace skill (needs Media Kit.pdf for Recommendations)
-└── SocPi/
-    ├── if-exclusives-audit/       ← user skill — install to ~/.claude/skills/
-    └── if-exclusives-audit-quick/ ← user skill — install to ~/.claude/skills/
+├── SocPi/
+│   ├── if-exclusives-audit/       ← user skill — install to ~/.claude/skills/
+│   └── if-exclusives-audit-quick/ ← user skill — install to ~/.claude/skills/
+└── Sales/
+    └── competitors-and-leads/     ← bundle: code → ~/.claude/competitors-and-leads/
+                                     5 SKILL.md folders → ~/.claude/skills/sales-*
 ```
