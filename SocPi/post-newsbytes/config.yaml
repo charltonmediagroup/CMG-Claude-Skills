@@ -1,0 +1,42 @@
+# post-newsbytes — runtime config.
+# Cached values populated lazily on first run (Step 5 of SKILL.md).
+
+# SocialPilot platform IDs (same as if-exclusives-audit).
+platforms:
+  facebook:  1
+  twitter:   2     # X
+  linkedin:  3
+  instagram: 9
+
+# SocialPilot APB group + per-platform accountIds.
+# Resolved on first run (Step 5 of the SKILL.md). The CMG account's
+# group ID is cached here so subsequent runs skip GroupList/AccountList.
+# To force a re-resolve (e.g. after the group is renamed in SocialPilot),
+# delete this 'apb' entry.
+groups:
+  apb:
+    groupId: 7a3cd47a-b6a8-47dd-a2f7-7ad0fc1e82b5
+    accounts:
+      facebook:  1928519
+      instagram: 2078324
+      linkedin:  2078329
+      twitter:   2078325
+
+# Always-on hashtags appended to every default/X caption.
+anchor_hashtags:
+  - broadcast
+  - broadcasting
+
+# X (Twitter) total-character cap.
+x_max_chars: 200
+
+# SocialPilot scheduleDateTime is interpreted in the *account-level*
+# timezone, not UTC. The CMG SocialPilot account is set to Asia/Singapore,
+# so we pass YYYY-MM-DD HH:mm in SGT directly (no UTC conversion). Confirmed
+# via the May 11, 2026 04:00 PM SGT run landing exactly at 4PM in the queue.
+schedule_timezone_note: |
+  CreatePost.scheduleDateTime values are sent as YYYY-MM-DD HH:mm in the
+  SocialPilot account's local timezone. Do NOT convert to UTC before
+  passing — SocialPilot will read it as if it were already UTC and the
+  post fires 8 hours early. If the CMG SocialPilot account is ever moved
+  to a different timezone, update this and re-test.
