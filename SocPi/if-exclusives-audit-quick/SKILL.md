@@ -60,7 +60,13 @@ If `cache/account_map.json` exists, skip. Otherwise call SocialPilot `GroupList`
 
 ### Step 3 — Pull DeliveredPosts AND QueuedPosts (per article, parallel)
 
-Same as main skill Step 3. Fire **all** `DeliveredPosts(q=<slug>)` and `QueuedPosts(q=<slug>)` calls in **a single parallel batch** (one Claude message with N tool-use blocks, where N = 2 × number of articles). No `account` filter needed.
+Same as main skill Step 3. Fire **all** `DeliveredPosts(q=<domain-and-path>)` and `QueuedPosts(q=<domain-and-path>)` calls in **a single parallel batch** (one Claude message with N tool-use blocks, where N = 2 × number of articles). No `account` filter needed.
+
+**Use `q=<domain>/<path>` (no `https://`) for BOTH queries.** Strip the scheme from the article's `url` in `articles.json`.
+
+- Example: `q=asianbankingandfinance.net/exclusive/dbs-urges-portfolio-rebalancing-volatility-rises`
+- Slug-only (`q=dbs-urges-…`) is wrong: it returns posts from ANY publication that posted that slug (cross-pub leak), and it fails entirely against QueuedPosts because queued captions store `https://domain.com/…` and `q=` won't match within a scheme-prefixed URL.
+- Domain+path works for both: delivered captions have `domain.com/path/slug?utm_…` and queued captions have `https://domain.com/path/slug`.
 
 ### Step 3a — Write the batch input file (with trimming for large audits)
 

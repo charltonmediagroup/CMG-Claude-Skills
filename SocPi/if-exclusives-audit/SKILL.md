@@ -123,19 +123,24 @@ If `cache/account_map.json` exists, skip. Otherwise call `GroupList` (paged) →
 For each article in `articles.json`, queue:
 
 ```
-mcp__ae062…__DeliveredPosts(q=<article-slug>,
+mcp__ae062…__DeliveredPosts(q=<article-domain-and-path>,
                             startDate=<window-start>, endDate=<window-end>, limit=20)
-mcp__ae062…__QueuedPosts   (q=<article-slug>,
+mcp__ae062…__QueuedPosts   (q=<article-domain-and-path>,
                             startDate=<window-start>, endDate=<window-end>, limit=20)
 ```
 
 That's **2 calls per article** — for 21 articles, **~42 calls total**, vs the old 78. Each call returns up to 4 posts (one per platform) so `limit=20` is plenty.
 
-Use the article's slug (the last path segment of the URL). Examples:
-- `royal-garden-kowloon-east-targets-families-and-pet-owners`
-- `seoul-and-tokyo-residential-markets-stay-resilient`
+**Use `q=<domain>/<path>` (no `https://`) for BOTH queries — this is critical.**
 
-Date window: from earliest article date − 30 days to today + 30 days. SocialPilot's `q=` searches post descriptions where pubs' captions contain the full article URL with the slug.
+Derive it by stripping the `https://` prefix from the article's `url` field in `articles.json`. Example: `q=asianbankingandfinance.net/exclusive/dbs-urges-portfolio-rebalancing-volatility-rises`.
+
+Why not just the slug?
+- Slug-only (`q=dbs-urges-portfolio-rebalancing-volatility-rises`) returns posts from ANY publication that ever posted that slug. Cross-pub stories (e.g. an ABF article also posted via ABR accounts) pollute the audit and overwrite the correct pub's scheduled-only state with another pub's delivered links.
+- Slug-only doesn't work for `QueuedPosts` at all — queued captions store `https://domain.com/path/slug` (no UTM), and `q=` won't substring-match the slug within a scheme-prefixed URL.
+- Domain+path works for both: delivered captions have `domain.com/path/slug?utm_source=…` (substring-match before the `?`), queued captions have `https://domain.com/path/slug` (substring-match after the `https://`).
+
+Date window: from earliest article date − 30 days to today + 30 days.
 
 **Save ALL responses in EXACTLY TWO steps:**
 

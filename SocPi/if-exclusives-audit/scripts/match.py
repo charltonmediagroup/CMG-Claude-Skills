@@ -164,11 +164,16 @@ def main() -> None:
         slug_hit_idx = None
         for slug, idxs in by_slug.items():
             if slug and slug in desc_lower:
-                # Prefer an article whose publication matches the post's pub.
+                # Only claim the post for a SAME-publication article. Sibling
+                # CMG sites republish the same story under an identical slug on
+                # their own domain; the old idxs[0] fallback miscredited a
+                # cross-pub post (e.g. insuranceasia.com) to another pub's row
+                # (e.g. sbr.com.sg), producing a false DUPLICATE ISSUE.
                 same_pub = [i for i in idxs
                             if articles[i]["publication"].lower().lstrip("www.") == post_pub]
-                slug_hit_idx = same_pub[0] if same_pub else idxs[0]
-                break
+                if same_pub:
+                    slug_hit_idx = same_pub[0]
+                    break
         if slug_hit_idx is not None:
             articles[slug_hit_idx][bucket_name][platform].append({
                 "postId": post.get("postId"),
